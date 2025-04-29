@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CodeInspector;
@@ -27,14 +28,18 @@ class Program
             Console.WriteLine($"{namespaceDeclaration.Name}");
         }
 
-        var classDeclarationQuery = new SourceCodeQuery<ClassDeclarationSyntax>(provider)
-            .Where(c => c.Identifier.ToString().Contains("Source"))
-            .OrderBy(x => x.Identifier)
-            .Distinct();
+        var classDeclarationQuery = from c in new SourceCodeQuery<ClassDeclarationSyntax>(provider)
+              where c.Modifiers.Any(m => m.IsKind(SyntaxKind.PublicKeyword))
+              orderby c.Identifier.Text
+              select new
+              {
+                  ClassName = c.Identifier.Text,
+                  MethodCount = c.Members.OfType<MethodDeclarationSyntax>().Count()
+              };
 
         foreach (var classDeclaration in classDeclarationQuery)
         {
-            Console.WriteLine($"{classDeclaration.Identifier}");
+            Console.WriteLine($"{classDeclaration}");
         }
     }
 }
