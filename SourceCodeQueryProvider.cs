@@ -5,12 +5,22 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace CodeInspector;
 
+/// <summary>
+/// Provides functionality to execute queries against C# source code.
+/// Implements IQueryProvider to support LINQ operations on source code.
+/// </summary>
 public class SourceCodeQueryProvider : IQueryProvider, IDisposable
 {
     private readonly string _solutionPath;
     private readonly List<SyntaxTree> _syntaxTrees = new();
     private bool _disposed;
 
+    /// <summary>
+    /// Initializes a new instance of SourceCodeQueryProvider with the specified solution path.
+    /// </summary>
+    /// <param name="solutionPath">The path to the solution directory containing C# source files</param>
+    /// <exception cref="ArgumentNullException">Thrown when solutionPath is null or empty</exception>
+    /// <exception cref="DirectoryNotFoundException">Thrown when solutionPath does not exist</exception>
     public SourceCodeQueryProvider(string solutionPath)
     {
         if (string.IsNullOrEmpty(solutionPath))
@@ -22,6 +32,9 @@ public class SourceCodeQueryProvider : IQueryProvider, IDisposable
         LoadSyntaxTrees();
     }
 
+    /// <summary>
+    /// Loads all C# source files from the solution directory and creates syntax trees.
+    /// </summary>
     private void LoadSyntaxTrees()
     {
         try 
@@ -48,6 +61,9 @@ public class SourceCodeQueryProvider : IQueryProvider, IDisposable
         }
     }
 
+    /// <summary>
+    /// Releases all resources used by the SourceCodeQueryProvider.
+    /// </summary>
     public void Dispose()
     {
         if (!_disposed)
@@ -57,21 +73,45 @@ public class SourceCodeQueryProvider : IQueryProvider, IDisposable
         }
     }
 
+    /// <summary>
+    /// Creates a new query object for the specified expression.
+    /// </summary>
+    /// <param name="expression">The expression representing the query</param>
+    /// <returns>A new query object</returns>
     public IQueryable CreateQuery(Expression expression)
     {
         return new SourceCodeQuery<object>(this, expression);
     }
 
+    /// <summary>
+    /// Creates a new query object for the specified expression and element type.
+    /// </summary>
+    /// <typeparam name="TElement">The type of elements in the query</typeparam>
+    /// <param name="expression">The expression representing the query</param>
+    /// <returns>A new query object</returns>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
         return new SourceCodeQuery<TElement>(this, expression);
     }
 
+    /// <summary>
+    /// Executes the query represented by the specified expression.
+    /// </summary>
+    /// <param name="expression">The expression representing the query</param>
+    /// <returns>The result of executing the query</returns>
     public object Execute(Expression expression)
     {
         return Execute<object>(expression);
     }
 
+    /// <summary>
+    /// Executes the strongly-typed query represented by the specified expression.
+    /// </summary>
+    /// <typeparam name="TResult">The type of the query result</typeparam>
+    /// <param name="expression">The expression representing the query</param>
+    /// <returns>The result of executing the query</returns>
+    /// <exception cref="ObjectDisposedException">Thrown when the provider has been disposed</exception>
+    /// <exception cref="InvalidOperationException">Thrown when there is an error executing the query</exception>
     public TResult Execute<TResult>(Expression expression)
     {
         if (_disposed)
@@ -190,6 +230,13 @@ public class SourceCodeQueryProvider : IQueryProvider, IDisposable
         }
     }
 
+    /// <summary>
+    /// Converts a key value to an IComparable for sorting operations.
+    /// </summary>
+    /// <param name="key">The key value to convert</param>
+    /// <returns>An IComparable representation of the key</returns>
+    /// <exception cref="ArgumentNullException">Thrown when key is null</exception>
+    /// <exception cref="InvalidOperationException">Thrown when key cannot be converted to string</exception>
     private static IComparable ConvertToComparable(object? key)
     {
         if (key == null)
@@ -207,6 +254,9 @@ public class SourceCodeQueryProvider : IQueryProvider, IDisposable
         return strKey;
     }
 
+    /// <summary>
+    /// Provides equality comparison for CSharpSyntaxNode instances based on their string representation.
+    /// </summary>
     private class SyntaxNodeEqualityComparer : IEqualityComparer<CSharpSyntaxNode>
     {
         public bool Equals(CSharpSyntaxNode? x, CSharpSyntaxNode? y)
